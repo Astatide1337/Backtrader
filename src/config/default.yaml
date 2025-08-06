@@ -1,0 +1,23 @@
+
+# Backtest settings
+initial_capital: 10000
+commission: 0.001
+slippage: 0.0005
+
+# Data settings
+data_source: "yahoo_finance"
+cache_dir: "./data/cache"
+
+# Alpaca API settings
+alpaca:
+  api_key: "PKX38AF3U8C70JQMV4VQ"
+  secret_key: "Lu5CH6NaaeO7XFmkZ2ehPuZyKXQltBVoqmAFtBF8"
+  paper: true
+  base_url: "https://paper-api.alpaca.markets"
+
+# Strategy parameters
+strategy_params: {}
+
+# Analysis settings
+benchmark: "SPY"
+risk_free_rate: 0.02

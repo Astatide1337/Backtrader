@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables for light theme */
+:root {
+  --background: 255 255 255;
+  --foreground: 9 9 11;
+  --muted: 243 244 246;
+  --muted-foreground: 107 114 128;
+  --primary: 37 99 235; /* blue-600 */
+  --primary-foreground: 249 250 251;
+  --card: 255 255 255;
+  --card-foreground: 9 9 11;
+  --border: 229 231 235;
+}
+
+/* Base resets and typography */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  @apply bg-white text-gray-900 antialiased;
+}
+
+/* Reusable utility compositions */
+.container-responsive {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.card {
+  @apply bg-white shadow-card border border-gray-200 rounded-lg;
+}
+
+.card-header {
+  @apply px-4 py-3 border-b border-gray-200 flex items-center justify-between;
+}
+
+.card-content {
+  @apply p-4;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+}
+
+.btn-secondary {
+  @apply bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-300;
+}
+
+.input {
+  @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+}
+
+.select {
+  @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+}
+
+.table-root {
+  @apply w-full text-left text-sm;
+}
+
+.table-head {
+  @apply bg-gray-50 text-gray-600;
+}
+
+.table-row {
+  @apply border-b last:border-0;
+}
+
+.skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+/* Layout helpers */
+.layout-root {
+  @apply min-h-screen bg-gray-50;
+}
+
+.sidebar {
+  @apply bg-white border-r border-gray-200;
+}
+
+.topbar {
+  @apply bg-white border-b border-gray-200;
+}
