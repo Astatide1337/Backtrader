@@ -13,9 +13,12 @@
 // Backtests
 export interface BacktestListItem {
   id: string;
-  name: string;
+  strategy_name: string;
+  symbol: string;
+  start_date: string;
+  end_date: string;
+  initial_capital: number;
   created_at: string; // ISO
-  status: 'pending' | 'running' | 'completed' | 'failed';
 }
 
 export interface BacktestDetail {

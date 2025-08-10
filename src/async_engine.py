@@ -8,7 +8,7 @@ import logging
 from .config import Config
 from .data_manager import DataManager
 from .strategy_manager import StrategyManager
-from .order_manager import OrderManager, OrderType, OrderDirection
+from .order_manager import OrderManager, OrderType, OrderDirection, Order
 from .strategies import ComposableStrategy
 
 class AsyncBacktestEngine:
@@ -120,6 +120,18 @@ class AsyncBacktestEngine:
                 for p in self.order_manager.get_closed_positions()
             ],
             'performance': performance_metrics,
+            'orders': [
+                {
+                    "id": o.id,
+                    "symbol": o.symbol,
+                    "side": o.direction.value,
+                    "qty": o.quantity,
+                    "price": o.price,
+                    "timestamp": o.timestamp.isoformat(),
+                    "status": o.status.value,
+                }
+                for o in self.order_manager.get_all_orders()
+            ]
         }
     
     def _reset_state(self) -> None:
@@ -202,7 +214,7 @@ class AsyncBacktestEngine:
 
         if signal == 1 and not existing_position:
             # No position, so open a new long one
-            order = self.order_manager.create_order(symbol, quantity, OrderType.MARKET, OrderDirection.BUY)
+            order = self.order_manager.create_order(symbol, quantity, OrderType.MARKET, OrderDirection.BUY, price, timestamp)
             await self.order_manager.execute_order(order, price, timestamp)
         elif signal == -1 and existing_position:
             # We have a position, so close it

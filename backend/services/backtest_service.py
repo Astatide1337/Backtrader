@@ -1,4 +1,3 @@
-
 """
 Backtest service module.
 
@@ -19,9 +18,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 from src.async_engine import AsyncBacktestEngine
 from config import Config
 from strategy_manager import StrategyManager
-from ..database import save_backtest_result_db, get_backtest_result_db, list_backtests_db, delete_backtest_db, list_custom_strategies_db
+from ..database import save_backtest_result_db, get_backtest_result_db, list_backtests_db, delete_backtest_db, list_custom_strategies_db, get_backtest_orders_db
 import json
-from backend.models.api_models import StrategySchemaV1
+from backend.models.api_models import StrategySchemaV1, Order
 
 
 class BacktestService:
@@ -125,3 +124,16 @@ class BacktestService:
         """Delete a backtest."""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, delete_backtest_db, backtest_id)
+
+    async def get_backtest_orders(self, backtest_id: str) -> List[Order]:
+        """Get orders for a specific backtest ID."""
+        loop = asyncio.get_event_loop()
+        orders_data = await loop.run_in_executor(None, get_backtest_orders_db, backtest_id)
+        orders = []
+        for order_data in orders_data:
+            if 'order_id' in order_data:
+                order_data['id'] = order_data.pop('order_id')
+            if 'quantity' in order_data:
+                order_data['qty'] = order_data.pop('quantity')
+            orders.append(Order(**order_data))
+        return orders

@@ -34,7 +34,7 @@ from backend.models.api_models import (
     BacktestRequest,
     BacktestResponse,
     OrderRequest,
-    OrderResponse,
+    Order,
     PortfolioSnapshot,
     CustomStrategyRequest,
     CustomStrategyResponse,
@@ -42,7 +42,8 @@ from backend.models.api_models import (
     ValidationRequest,
     ValidationResponse,
     ErrorResponse,
-    StrategySchemaV1
+    StrategySchemaV1,
+    Order
 )
 from backend.database import init_db, save_custom_strategy_db, get_custom_strategy_db, list_custom_strategies_db, delete_custom_strategy_db
 
@@ -174,8 +175,33 @@ async def delete_backtest(backtest_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/v1/backtests/{backtest_id}/orders", response_model=List[Order])
+async def get_backtest_orders(backtest_id: str):
+    """Get orders for a specific backtest ID."""
+    try:
+        backtest_service = app.state.backtest_service
+        orders = await backtest_service.get_backtest_orders(backtest_id)
+        
+        if not orders:
+            # It's possible a backtest exists but has no orders, or the backtest_id is invalid.
+            # We'll check if the backtest itself exists to differentiate.
+            backtest_result = await backtest_service.get_backtest_results(backtest_id)
+            if not backtest_result:
+                raise HTTPException(status_code=404, detail="Backtest not found")
+            else:
+                return [] # Backtest found, but no orders
+        
+        return orders
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving orders for backtest {backtest_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Order management endpoints
-@app.post("/api/v1/orders", response_model=OrderResponse)
+@app.post("/api/v1/orders", response_model=Order)
 async def create_order(request: OrderRequest):
     """Create a new order."""
     try:
@@ -191,7 +217,7 @@ async def create_order(request: OrderRequest):
         # Broadcast order update via WebSocket
         await broadcast_order_update(order.__dict__)
         
-        return OrderResponse.from_order(order)
+        return Order.from_order(order)
     
     except Exception as e:
         logger.error(f"Order creation error: {str(e)}")
@@ -204,7 +230,7 @@ async def list_orders():
     try:
         order_service = app.state.order_service
         orders = await order_service.list_orders()
-        return {"orders": [OrderResponse.from_order(order) for order in orders]}
+        return {"orders": [Order.from_order(order) for order in orders]}
     
     except Exception as e:
         logger.error(f"Error listing orders: {str(e)}")
@@ -221,7 +247,7 @@ async def get_order(order_id: str):
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
         
-        return OrderResponse.from_order(order)
+        return Order.from_order(order)
     
     except HTTPException:
         raise

@@ -5,6 +5,7 @@ from enum import Enum
 import logging
 import numpy as np
 import asyncio
+from datetime import datetime # Import datetime
 
 class SlippageModel(Enum):
     """Slippage models."""
@@ -33,7 +34,7 @@ class OrderDirection(Enum):
 
 class Order:
     """Represents a trading order."""
-    def __init__(self, symbol: str, quantity: float, order_type: OrderType, direction: OrderDirection, price: Optional[float] = None, duration: Optional[int] = None):
+    def __init__(self, symbol: str, quantity: float, order_type: OrderType, direction: OrderDirection, price: float, timestamp: datetime, duration: Optional[int] = None):
         self.id = str(uuid.uuid4())
         self.symbol = symbol
         self.quantity = quantity
@@ -42,8 +43,9 @@ class Order:
         self.price = price
         self.duration = duration
         self.status = OrderStatus.PENDING
+        self.timestamp = timestamp
         self.filled_price: Optional[float] = None
-        self.filled_time: Optional[pd.Timestamp] = None
+        self.filled_time: Optional[datetime] = None
         self.commission = 0.0
 
     def to_dict(self):
@@ -56,28 +58,29 @@ class Order:
             "price": self.price,
             "duration": self.duration,
             "status": self.status.value,
+            "timestamp": self.timestamp.isoformat(),
             "filled_price": self.filled_price,
-            "filled_time": self.filled_time,
+            "filled_time": self.filled_time.isoformat() if self.filled_time else None,
             "commission": self.commission,
         }
 
 class Position:
     """Represents a trading position."""
-    def __init__(self, symbol: str, quantity: float, entry_price: float, entry_time: pd.Timestamp):
+    def __init__(self, symbol: str, quantity: float, entry_price: float, entry_time: datetime): # Change to datetime
         self.id = str(uuid.uuid4())
         self.symbol = symbol
         self.quantity = quantity
         self.entry_price = entry_price
         self.entry_time = entry_time
         self.exit_price: Optional[float] = None
-        self.exit_time: Optional[pd.Timestamp] = None
+        self.exit_time: Optional[datetime] = None
         self.commission = 0.0
         self.orders: List[Order] = []
 
     def is_open(self) -> bool:
         return self.exit_price is None
 
-    def close(self, exit_price: float, exit_time: pd.Timestamp) -> None:
+    def close(self, exit_price: float, exit_time: datetime) -> None: # Change to datetime
         self.exit_price = exit_price
         self.exit_time = exit_time
 
@@ -145,12 +148,12 @@ class OrderManager:
         # Broker-like cash tracking (engine will initialize/own current capital; we expose helpers)
         self.cash: float = 0.0
 
-    def create_order(self, symbol: str, quantity: float, order_type: OrderType, direction: OrderDirection, price: Optional[float] = None, duration: Optional[int] = None) -> Order:
-        order = Order(symbol, quantity, order_type, direction, price, duration)
+    def create_order(self, symbol: str, quantity: float, order_type: OrderType, direction: OrderDirection, price: float, timestamp: datetime, duration: Optional[int] = None) -> Order:
+        order = Order(symbol, quantity, order_type, direction, price, timestamp, duration)
         self.orders[order.id] = order
         return order
 
-    async def execute_order(self, order: Order, current_price: float, current_time: pd.Timestamp, data: Optional[pd.DataFrame] = None) -> Optional[Position]:
+    async def execute_order(self, order: Order, current_price: float, current_time: datetime, data: Optional[pd.DataFrame] = None) -> Optional[Position]:
         if order.status != OrderStatus.PENDING:
             return None
 
@@ -189,7 +192,7 @@ class OrderManager:
         )
         return position
 
-    def _get_execution_price(self, order: Order, current_price: float, current_time: pd.Timestamp, data: Optional[pd.DataFrame] = None) -> Optional[float]:
+    def _get_execution_price(self, order: Order, current_price: float, current_time: datetime, data: Optional[pd.DataFrame] = None) -> Optional[float]:
         if order.order_type == OrderType.MARKET:
             return current_price
         elif order.order_type == OrderType.LIMIT:
@@ -230,7 +233,7 @@ class OrderManager:
 
         return execution_price + slippage_amount if order.direction == OrderDirection.BUY else execution_price - slippage_amount
 
-    def _update_position(self, order: Order, execution_price: float, current_time: pd.Timestamp) -> Optional[Position]:
+    def _update_position(self, order: Order, execution_price: float, current_time: datetime) -> Optional[Position]: # Change to datetime
         """Update/open/close positions ensuring no zero-qty positions persist."""
         open_position = next((p for p in self.positions.values() if p.is_open() and p.symbol == order.symbol), None)
 
@@ -286,12 +289,16 @@ class OrderManager:
     def get_closed_positions(self) -> List[Position]:
         return self.closed_positions
 
+    def get_all_orders(self) -> List[Order]:
+        """Get all orders, both pending and filled."""
+        return list(self.orders.values())
+
     async def close_position(self, position_id: str, current_price: float, current_time: pd.Timestamp) -> Optional[Position]:
         position = self.positions.get(position_id)
         if not position or not position.is_open():
             return None
         direction = OrderDirection.SELL if position.quantity > 0 else OrderDirection.BUY
-        order = self.create_order(position.symbol, abs(position.quantity), OrderType.MARKET, direction)
+        order = self.create_order(position.symbol, abs(position.quantity), OrderType.MARKET, direction, current_price, current_time)
         closed_position = await self.execute_order(order, current_price, current_time)
         
         # The position is closed within _update_position, which is called by execute_order.

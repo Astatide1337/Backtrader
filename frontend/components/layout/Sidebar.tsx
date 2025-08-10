@@ -39,7 +39,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
         <NavItem href="/" label="Home" onClick={onNavigate} />
         <NavItem href="/backtests" label="Backtests" onClick={onNavigate} />
-        <NavItem href="/orders" label="Orders" onClick={onNavigate} />
         <NavItem href="/strategies" label="Strategies" onClick={onNavigate} />
       </nav>
       <div className="p-4 border-t text-xs text-gray-500">

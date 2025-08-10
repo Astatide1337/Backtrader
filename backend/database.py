@@ -220,3 +220,22 @@ def delete_custom_strategy_db(strategy_id: str) -> bool:
     except Exception as e:
         logger.error(f"Error deleting custom strategy {strategy_id} from database: {e}")
         return False
+
+def get_backtest_orders_db(backtest_id: str) -> List[Dict[str, Any]]:
+    """Get orders for a specific backtest ID from the database."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT results_json FROM backtests WHERE id = ?", (backtest_id,))
+        row = cursor.fetchone()
+        
+        conn.close()
+        
+        if row:
+            results = json.loads(row['results_json'])
+            return results.get('orders', [])
+        return []
+    except Exception as e:
+        logger.error(f"Error getting orders for backtest {backtest_id} from database: {e}")
+        return []

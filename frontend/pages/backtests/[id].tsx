@@ -27,6 +27,13 @@ const BacktestDetailPage: React.FC = () => {
           <Button
             variant="secondary"
             className="px-3 py-1 text-sm"
+            onClick={() => router.push(`/backtests/${id}/orders`)}
+          >
+            View Orders
+          </Button>
+          <Button
+            variant="secondary"
+            className="px-3 py-1 text-sm"
             onClick={async () => {
               if (!id) return;
               if (!confirm('Delete this backtest? This action cannot be undone.')) return;

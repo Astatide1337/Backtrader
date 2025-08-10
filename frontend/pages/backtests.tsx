@@ -58,7 +58,7 @@ const BacktestsPage: React.FC = () => {
                     <TH>Symbol</TH>
                     <TH>Period</TH>
                     <TH className="text-right">Initial Capital</TH>
-                    <TH className="w-20 text-right">Actions</TH>
+                    <TH className="w-40 text-right">Actions</TH>
                   </TR>
                 </THead>
                 <TBody>
@@ -94,16 +94,28 @@ const BacktestsPage: React.FC = () => {
                       </TD>
                       <TD className="text-right">${b.initial_capital.toLocaleString()}</TD>
                       <TD className="text-right">
-                        <Button
-                          variant="secondary"
-                          className="px-2 py-1 text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(b.id);
-                          }}
-                        >
-                          Delete
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="secondary"
+                            className="px-2 py-1 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = `/backtests/${b.id}/orders`;
+                            }}
+                          >
+                            View Orders
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            className="px-2 py-1 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDelete(b.id);
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </TD>
                     </TR>
                   ))}

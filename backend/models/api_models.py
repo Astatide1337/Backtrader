@@ -34,26 +34,27 @@ class OrderRequest(BaseModel):
     price: Optional[float]
 
 
-class OrderResponse(BaseModel):
-    order_id: str
+class Order(BaseModel):
+    id: str
     symbol: str
-    quantity: float
-    order_type: str
-    direction: str
+    side: str
+    qty: float
     price: Optional[float]
+    timestamp: datetime
     status: str
 
     @staticmethod
-    def from_order(order) -> "OrderResponse":
-        return OrderResponse(
-            order_id=order.id,
+    def from_order(order) -> "Order":
+        return Order(
+            id=order.id,
             symbol=order.symbol,
-            quantity=order.quantity,
-            order_type=order.order_type,
-            direction=order.direction,
+            side=order.direction, # Assuming 'direction' from backend Order maps to 'side'
+            qty=order.quantity,
             price=order.price,
+            timestamp=order.timestamp,
             status=order.status
         )
+
 
 
 class PortfolioSnapshot(BaseModel):

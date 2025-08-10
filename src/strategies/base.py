@@ -165,7 +165,7 @@ class ComposableStrategy(Strategy):
         kind = operand.get('kind')
         if kind == 'indicator':
             ref = operand.get('ref')
-            column_name = self.indicator_map.get(ref)
+            column_name = self.indicator_map.get(ref) # type: ignore
             if not column_name or column_name not in data.columns:
                 raise ValueError(f"Indicator '{ref}' not found in data columns")
             return data[column_name]
