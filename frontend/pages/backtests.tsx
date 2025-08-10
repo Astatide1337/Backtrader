@@ -100,16 +100,6 @@ const BacktestsPage: React.FC = () => {
                             className="px-2 py-1 text-xs"
                             onClick={(e) => {
                               e.stopPropagation();
-                              window.location.href = `/backtests/${b.id}/orders`;
-                            }}
-                          >
-                            View Orders
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            className="px-2 py-1 text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
                               onDelete(b.id);
                             }}
                           >

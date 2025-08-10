@@ -22,6 +22,7 @@ class BacktestResponse(BaseModel):
     initial_capital: float
     final_capital: float
     equity_curve: List[Dict[str, Union[float, datetime]]]
+    price_curve: Optional[List[Dict[str, Union[float, datetime]]]] = None
     positions: List[Dict[str, Union[str, float, datetime]]]
     performance: Dict[str, float]
 

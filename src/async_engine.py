@@ -53,6 +53,13 @@ class AsyncBacktestEngine:
         if not data_dict:
             self.logger.error(f"No data found for symbols: {symbols}")
             return {}
+
+        price_curve = []
+        # Handle single symbol string or list of symbols
+        symbol_list = [symbols] if isinstance(symbols, str) else symbols
+        if symbol_list and symbol_list[0] in data_dict:
+            price_df = data_dict[symbol_list[0]]
+            price_curve = [{'timestamp': ts, 'price': price} for ts, price in price_df['close'].items()]
         
         if strategy_definition:
             strategy = ComposableStrategy.from_dict(strategy_definition)
@@ -103,6 +110,7 @@ class AsyncBacktestEngine:
             'initial_capital': self.initial_capital,
             'final_capital': final_capital,
             'equity_curve': self.equity_curve,
+            'price_curve': price_curve,
             'positions': [
                 {
                     "symbol": p.symbol,

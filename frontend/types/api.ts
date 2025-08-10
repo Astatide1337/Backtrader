@@ -21,13 +21,45 @@ export interface BacktestListItem {
   created_at: string; // ISO
 }
 
+export interface PerformanceMetrics {
+  total_return: number;
+  annualized_return: number;
+  annualized_volatility: number;
+  sharpe_ratio: number;
+  sortino_ratio: number;
+  calmar_ratio: number;
+  max_drawdown: number;
+  win_rate: number;
+  profit_factor: number;
+  avg_trade: number;
+  avg_win: number;
+  avg_loss: number;
+}
+
+export interface Position {
+  symbol: string;
+  side: 'long' | 'short';
+  quantity: number;
+  entry_price: number;
+  exit_price: number | null;
+  pnl: number;
+  entry_time: string;
+  exit_time: string | null;
+}
+
 export interface BacktestDetail {
   id: string;
-  name: string;
-  created_at: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  metrics?: Record<string, number | string | null>;
-  notes?: string | null;
+  strategy_name: string;
+  symbol: string;
+  start_date: string;
+  end_date: string;
+  initial_capital: number;
+  final_capital: number;
+  equity_curve: { timestamp: string; equity: number }[];
+  price_curve?: { timestamp: string; price: number }[];
+  positions: Position[];
+  performance: PerformanceMetrics;
+  orders: Order[];
 }
 
 // Orders

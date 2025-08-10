@@ -1,0 +1,2 @@
+I want to create a portfilio system now. Where I can select several Stocks to add to the portfilio, choose a strategy for each individual stock. You should have the ability to have different portilios to test with and switch between the portfilios. This system should have the option of testing the portfilio against historical data and real time live data.  
+
