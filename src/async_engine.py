@@ -1,4 +1,3 @@
-
 import asyncio
 import pandas as pd
 import numpy as np
@@ -10,6 +9,7 @@ from .config import Config
 from .data_manager import DataManager
 from .strategy_manager import StrategyManager
 from .order_manager import OrderManager, OrderType, OrderDirection
+from .strategies import ComposableStrategy
 
 class AsyncBacktestEngine:
     """Asynchronous backtesting engine with cash-aware accounting."""
@@ -43,7 +43,7 @@ class AsyncBacktestEngine:
         self.logger.setLevel(logging.DEBUG)
         
     async def run_backtest(self, strategy_name: str, symbols: Union[str, List[str]], start_date: Union[str, datetime], 
-                             end_date: Union[str, datetime], **strategy_params) -> Dict[str, Any]:
+                             end_date: Union[str, datetime], strategy_definition: Optional[Dict] = None, **strategy_params) -> Dict[str, Any]:
         """
         Run a backtest asynchronously on one or more symbols.
         """
@@ -54,13 +54,17 @@ class AsyncBacktestEngine:
             self.logger.error(f"No data found for symbols: {symbols}")
             return {}
         
-        strategy = self.strategy_manager.create_strategy(strategy_name, **strategy_params)
+        if strategy_definition:
+            strategy = ComposableStrategy.from_dict(strategy_definition)
+        else:
+            strategy = self.strategy_manager.create_strategy(strategy_name, **strategy_params)
+
         if not strategy:
             self.logger.error(f"Strategy {strategy_name} not found")
             return {}
         
         # Normalize each symbol DataFrame: ensure a 'symbol' column and a DatetimeIndex named 'date'
-        normalized = []
+        all_data_with_indicators = {}
         signals_dict = {}
         for symbol, df in data_dict.items():
             df = df.copy()
@@ -69,15 +73,18 @@ class AsyncBacktestEngine:
             if not isinstance(df.index, pd.DatetimeIndex):
                 df.index = pd.to_datetime(df.index)
             df.index.name = 'date'
-            normalized.append(df)
-            # Precompute signals per symbol (aligned to df index)
-            sig = self.strategy_manager.run_strategy(strategy, df)['signal']
-            signals_dict[symbol] = sig
+            
+            # Calculate indicators and generate signals
+            data_with_indicators = self.strategy_manager.run_strategy(strategy, df)
+            signals_dict[symbol] = data_with_indicators['signal']
+            all_data_with_indicators[symbol] = data_with_indicators
+
 
         # Combine into MultiIndex: (symbol, date)
-        combined_data = pd.concat(normalized)
-        combined_data = combined_data.set_index(['symbol'], append=True).reorder_levels(['symbol', 'date'])
-        combined_data.sort_index(inplace=True)
+        combined_data = pd.concat(all_data_with_indicators.values())
+        if not combined_data.empty:
+            combined_data = combined_data.set_index(['symbol'], append=True).reorder_levels(['symbol', 'date'])
+            combined_data.sort_index(inplace=True)
 
         await self._step_through_data(combined_data, signals_dict, strategy)
         
@@ -133,39 +140,51 @@ class AsyncBacktestEngine:
         """
         Step through multi-asset data and execute trades.
         """
-        # Cash is kept in self.order_manager.cash. Keep a local alias for logging.
-        for timestamp, group in data.groupby(level=1):
+        if data.empty:
+            return
+
+        # data's index is ('symbol', 'date')
+        # We group by date to process each day's data for all symbols
+        for timestamp, group in data.reset_index().groupby('date'):
+            # group is a DataFrame with columns ['date', 'symbol', ...]
+
             # Compute equity = cash + MTM of open positions
             cash = float(self.order_manager.cash)
             current_equity = cash
-            syms = set(group.index.get_level_values('symbol'))
-            for pos in self.order_manager.get_open_positions():
-                if pos.symbol in syms:
-                    price = float(group.loc[(pos.symbol, timestamp), 'close'])
-                    current_equity += float(pos.quantity) * price
-            self.equity_curve.append({'timestamp': timestamp, 'equity': float(current_equity)})
-            self.logger.debug(f"[EQ] t={timestamp} cash={cash:.2f} equity={current_equity:.2f} open_pos={len(self.order_manager.get_open_positions())}")
+            open_positions = self.order_manager.get_open_positions()
 
-            for idx, row in group.iterrows():
-                symbol = idx[0]
+            # Create a temporary price lookup for the current timestamp
+            price_lookup = group.set_index('symbol')['close'].to_dict()
+
+            for pos in open_positions:
+                if pos.symbol in price_lookup:
+                    price = float(price_lookup[pos.symbol])
+                    current_equity += float(pos.quantity) * price
+
+            self.equity_curve.append({'timestamp': timestamp, 'equity': float(current_equity)})
+            self.logger.debug(f"[EQ] t={timestamp} cash={cash:.2f} equity={current_equity:.2f} open_pos={len(open_positions)}")
+
+            # Iterate through each symbol in the current time group
+            for _, row in group.iterrows():
+                symbol = str(row['symbol'])
                 signal = signals[symbol].get(timestamp)
+
                 if signal is not None and signal != 0:
                     pre_cash = self.order_manager.cash
-                    await self._execute_signal(signal, row, timestamp)
+                    await self._execute_signal(signal, symbol, row, timestamp) # type: ignore
                     post_cash = self.order_manager.cash
                     self.logger.debug(f"[EXEC] {symbol} signal={signal} cash:{pre_cash:.2f}->{post_cash:.2f}")
 
-                await self._check_exit_conditions(row['close'], timestamp, strategy, symbol)
-            
+                await self._check_exit_conditions(float(row['close']), timestamp, strategy, symbol) # type: ignore
+
             await asyncio.sleep(0)
 
-    async def _execute_signal(self, signal: float, row: pd.Series, timestamp: pd.Timestamp) -> None:
+    async def _execute_signal(self, signal: float, symbol: str, row: pd.Series, timestamp: pd.Timestamp) -> None:
         """
         Execute a trading signal for a specific symbol.
         Sizing uses available cash (no leverage). Cash is mutated inside OrderManager on fill.
         """
         price = float(row['close'])
-        symbol = str(row.name[0])
         available_cash = float(self.order_manager.cash)
         if price <= 0:
             self.logger.debug(f"[SIZE] Skip non-positive price at {timestamp}")
@@ -178,14 +197,17 @@ class AsyncBacktestEngine:
             self.logger.debug(f"[SIZE] Zero qty at {timestamp} price={price} cash={available_cash} pct={pct}")
             return
 
-        if signal == 1:
+        # Check for existing position
+        existing_position = self.order_manager.get_position(symbol)
+
+        if signal == 1 and not existing_position:
+            # No position, so open a new long one
             order = self.order_manager.create_order(symbol, quantity, OrderType.MARKET, OrderDirection.BUY)
             await self.order_manager.execute_order(order, price, timestamp)
-        elif signal == -1:
-            # Close full if we have an open position; otherwise skip
-            order = self.order_manager.create_order(symbol, quantity, OrderType.MARKET, OrderDirection.SELL)
-            await self.order_manager.execute_order(order, price, timestamp)
-        # Cash updates are handled by OrderManager.execute_order
+        elif signal == -1 and existing_position:
+            # We have a position, so close it
+            await self.order_manager.close_position(existing_position.id, price, timestamp)
+        # Cash updates are handled by OrderManager.execute_order or close_position
         return None
 
     async def _check_exit_conditions(self, price: float, timestamp: pd.Timestamp, strategy, symbol: str) -> None:

@@ -17,7 +17,6 @@ import {
   validateConditions,
   type StrategySchemaV1,
 } from 'types/strategySchema';
-import { createOrUpdateCustomStrategy } from 'lib/customStrategies';
 
 const steps = [
   { key: 'basics', title: 'Basics', description: 'Name, description, tags' },
@@ -125,21 +124,9 @@ const NewCustomStrategyPage: React.FC = () => {
               <Button variant="secondary" size="sm" onClick={back} disabled={active === 0 || busy}>
                 Back
               </Button>
-              {active < steps.length - 1 ? (
+              {active < steps.length - 1 && (
                 <Button size="sm" onClick={next} disabled={!canNextByStep(active) || busy}>
                   Next
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  onClick={async () => {
-                    // quick draft save to navigate to detail
-                    const rec = await createOrUpdateCustomStrategy(schema, 'draft');
-                    router.push(`/strategies/custom/${encodeURIComponent(rec.id)}`);
-                  }}
-                  disabled={busy}
-                >
-                  Save Draft
                 </Button>
               )}
             </div>
@@ -159,20 +146,9 @@ const NewCustomStrategyPage: React.FC = () => {
             <Button variant="secondary" size="sm" onClick={back} disabled={active === 0 || busy}>
               Back
             </Button>
-            {active < steps.length - 1 ? (
+            {active < steps.length - 1 && (
               <Button size="sm" onClick={next} disabled={!canNextByStep(active) || busy}>
                 Next
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                onClick={async () => {
-                  const rec = await createOrUpdateCustomStrategy(schema, 'draft');
-                  router.push(`/strategies/custom/${encodeURIComponent(rec.id)}`);
-                }}
-                disabled={busy}
-              >
-                Save Draft
               </Button>
             )}
           </div>

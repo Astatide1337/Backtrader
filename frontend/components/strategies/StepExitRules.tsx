@@ -94,7 +94,14 @@ const StepExitRules: React.FC<Props> = ({ value, onChange }) => {
   function updateCondition(gIdx: number, cIdx: number, patch: Partial<Condition>) {
     const groups = (exit.groups || []).map((g, i) => {
       if (i !== gIdx) return g;
-      const conditions = g.conditions.map((c, j) => (j === cIdx ? { ...c, ...patch } : c));
+      const conditions = g.conditions.map((c, j) => {
+        if (j !== cIdx) return c;
+        // Deep merge to avoid overwriting nested objects
+        const newCond = { ...c, ...patch };
+        if (patch.left) newCond.left = { ...c.left, ...patch.left };
+        if (patch.right) newCond.right = { ...c.right, ...patch.right };
+        return newCond;
+      });
       return { ...g, conditions };
     });
     commit({ ...exit, groups });
@@ -137,7 +144,7 @@ const StepExitRules: React.FC<Props> = ({ value, onChange }) => {
               onChange={(e) => {
                 const text = e.target.value;
                 const maybeNum = Number(text);
-                onChange({ kind: 'const', value: isNaN(maybeNum) ? text : maybeNum });
+                onChange({ ...value, kind: 'const', value: isNaN(maybeNum) ? text : maybeNum });
               }}
             />
           )}
@@ -145,13 +152,13 @@ const StepExitRules: React.FC<Props> = ({ value, onChange }) => {
             <Input
               placeholder="indicator id"
               value={(value as any).ref ?? ''}
-              onChange={(e) => onChange({ kind: 'indicator', ref: e.target.value })}
+              onChange={(e) => onChange({ ...value, kind: 'indicator', ref: e.target.value })}
             />
           )}
           {kind === 'price' && (
             <Select
               value={(value as any).field ?? 'close'}
-              onChange={(e) => onChange({ kind: 'price', field: e.target.value as any })}
+              onChange={(e) => onChange({ ...value, kind: 'price', field: e.target.value as any })}
               options={[
                 { value: 'open', label: 'Open' },
                 { value: 'high', label: 'High' },
@@ -165,7 +172,7 @@ const StepExitRules: React.FC<Props> = ({ value, onChange }) => {
             <Input
               placeholder="expr"
               value={(value as any).expr ?? ''}
-              onChange={(e) => onChange({ kind: 'expr', expr: e.target.value })}
+              onChange={(e) => onChange({ ...value, kind: 'expr', expr: e.target.value })}
             />
           )}
         </div>
@@ -219,6 +226,7 @@ const StepExitRules: React.FC<Props> = ({ value, onChange }) => {
                         onChange={(o) => updateCondition(gIdx, cIdx, { left: o })}
                       />
                       <Select
+                        className='mt-2 md:mt-5'
                         value={c.op}
                         onChange={(e) => updateCondition(gIdx, cIdx, { op: e.target.value as Comparator })}
                         options={comparators}

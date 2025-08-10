@@ -107,68 +107,40 @@ export async function createOrUpdateCustomStrategy(
   schema: StrategySchemaV1,
   status: 'draft' | 'published',
 ): Promise<StrategyRecord> {
-  try {
-    const payload = await fetchJson<StrategyRecord>('/api/v1/strategies/custom', {
-      method: 'POST',
-      body: { status, strategy: schema },
-    });
-    return payload;
-  } catch (err: any) {
-    if (err instanceof HttpError ? (err.status >= 500 || err.status === 404 || err.status === 501) : true) {
-      showToast('Backend not ready, using localStorage fallback.');
-      return upsertLocal(schema, status);
-    }
-    throw err;
-  }
+  const payload = await fetchJson<StrategyRecord>('/api/v1/strategies/custom', {
+    method: 'POST',
+    body: { status, strategy: schema },
+  });
+  return payload;
 }
 
 export async function listCustomStrategies(): Promise<StrategyRecord[]> {
-  try {
-    const payload = await fetchJson<{ strategies: StrategyRecord[] } | StrategyRecord[]>(
-      '/api/v1/strategies/custom',
-    );
-    if (Array.isArray(payload)) return payload;
-    if (payload && 'strategies' in (payload as any)) return (payload as any).strategies;
-    return [];
-  } catch (err: any) {
-    if (err instanceof HttpError ? (err.status >= 500 || err.status === 404 || err.status === 501) : true) {
-      showToast('Backend not ready, using localStorage fallback.');
-      return listLocal();
-    }
-    throw err;
-  }
+  const payload = await fetchJson<{ strategies: StrategyRecord[] } | StrategyRecord[]>(
+    '/api/v1/strategies/custom',
+  );
+  if (Array.isArray(payload)) return payload;
+  if (payload && 'strategies' in (payload as any)) return (payload as any).strategies;
+  return [];
 }
 
 export async function getCustomStrategy(id: string): Promise<StrategyRecord> {
-  try {
-    const payload = await fetchJson<StrategyRecord>(`/api/v1/strategies/custom/${encodeURIComponent(id)}`);
-    return payload;
-  } catch (err: any) {
-    if (err instanceof HttpError ? (err.status >= 500 || err.status === 404 || err.status === 501) : true) {
-      showToast('Backend not ready, using localStorage fallback.');
-      const rec = getLocal(id);
-      if (!rec) throw new Error('Not found in local mock');
-      return rec;
-    }
-    throw err;
-  }
+  const payload = await fetchJson<StrategyRecord>(`/api/v1/strategies/custom/${encodeURIComponent(id)}`);
+  return payload;
 }
 
 export async function validateCustomStrategy(
   id: string,
   options: { bars?: number } = { bars: 100 },
 ): Promise<{ ok: boolean; notes: string[] }> {
-  try {
-    const payload = await fetchJson<{ ok: boolean; notes: string[] }>(
-      `/api/v1/strategies/custom/${encodeURIComponent(id)}/validate`,
-      { method: 'POST', body: { options } },
-    );
-    return payload;
-  } catch (err: any) {
-    if (err instanceof HttpError ? (err.status >= 500 || err.status === 404 || err.status === 501) : true) {
-      showToast('Backend not ready, using localStorage fallback.');
-      return validateLocal(id, options);
-    }
-    throw err;
-  }
+  const payload = await fetchJson<{ ok: boolean; notes: string[] }>(
+    `/api/v1/strategies/custom/${encodeURIComponent(id)}/validate`,
+    { method: 'POST', body: { options } },
+  );
+  return payload;
+}
+
+export async function deleteCustomStrategy(id: string): Promise<void> {
+  await fetchJson<void>(`/api/v1/strategies/custom/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
 }

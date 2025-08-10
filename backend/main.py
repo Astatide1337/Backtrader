@@ -12,7 +12,9 @@ import asyncio
 import logging
 import sys
 import os
+import json
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -33,9 +35,16 @@ from backend.models.api_models import (
     BacktestResponse,
     OrderRequest,
     OrderResponse,
-    PortfolioSnapshot
+    PortfolioSnapshot,
+    CustomStrategyRequest,
+    CustomStrategyResponse,
+    CustomStrategyListResponse,
+    ValidationRequest,
+    ValidationResponse,
+    ErrorResponse,
+    StrategySchemaV1
 )
-from backend.database import init_db
+from backend.database import init_db, save_custom_strategy_db, get_custom_strategy_db, list_custom_strategies_db, delete_custom_strategy_db
 
 
 # Configure logging
@@ -274,6 +283,176 @@ async def list_strategies():
     
     except Exception as e:
         logger.error(f"Error listing strategies: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Custom Strategy endpoints
+@app.post("/api/v1/strategies/custom", response_model=CustomStrategyResponse)
+async def create_custom_strategy(request: CustomStrategyRequest):
+    """Create a new custom strategy."""
+    try:
+        strategy_id = str(uuid4())
+        strategy_json = request.strategy.json()
+        
+        save_custom_strategy_db(strategy_id, request.status, strategy_json)
+        
+        return CustomStrategyResponse(
+            id=strategy_id,
+            status=request.status,
+            created_at="",
+            updated_at="",
+            strategy=request.strategy
+        )
+    
+    except Exception as e:
+        logger.error(f"Error creating custom strategy: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/strategies/custom", response_model=CustomStrategyListResponse)
+async def list_custom_strategies():
+    """List all custom strategies."""
+    try:
+        strategies_db = list_custom_strategies_db()
+        strategies = []
+        
+        for strategy_data in strategies_db:
+            strategy_json = json.loads(strategy_data['strategy_json'])
+            strategies.append(CustomStrategyResponse(
+                id=strategy_data['id'],
+                status=strategy_data['status'],
+                created_at=strategy_data['created_at'],
+                updated_at=strategy_data['updated_at'],
+                strategy=StrategySchemaV1(**strategy_json)
+            ))
+        
+        return CustomStrategyListResponse(strategies=strategies)
+    
+    except Exception as e:
+        logger.error(f"Error listing custom strategies: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/strategies/custom/{strategy_id}", response_model=CustomStrategyResponse)
+async def get_custom_strategy(strategy_id: str):
+    """Get a specific custom strategy."""
+    try:
+        strategy_data = get_custom_strategy_db(strategy_id)
+        
+        if not strategy_data:
+            raise HTTPException(status_code=404, detail="Custom strategy not found")
+        
+        strategy_json = json.loads(strategy_data['strategy_json'])
+        
+        return CustomStrategyResponse(
+            id=strategy_data['id'],
+            status=strategy_data['status'],
+            created_at=strategy_data['created_at'],
+            updated_at=strategy_data['updated_at'],
+            strategy=StrategySchemaV1(**strategy_json)
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting custom strategy {strategy_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/v1/strategies/custom/{strategy_id}", response_model=CustomStrategyResponse)
+async def update_custom_strategy(strategy_id: str, request: CustomStrategyRequest):
+    """Update a custom strategy."""
+    try:
+        # Check if strategy exists
+        existing_strategy = get_custom_strategy_db(strategy_id)
+        if not existing_strategy:
+            raise HTTPException(status_code=404, detail="Custom strategy not found")
+        
+        strategy_json = request.strategy.json()
+        
+        save_custom_strategy_db(strategy_id, request.status, strategy_json)
+        
+        return CustomStrategyResponse(
+            id=strategy_id,
+            status=request.status,
+            created_at=existing_strategy['created_at'],
+            updated_at=strategy_json,
+            strategy=request.strategy
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating custom strategy {strategy_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/v1/strategies/custom/{strategy_id}")
+async def delete_custom_strategy(strategy_id: str):
+    """Delete a custom strategy."""
+    try:
+        deleted = delete_custom_strategy_db(strategy_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Custom strategy not found")
+        
+        return JSONResponse(status_code=204, content=None)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting custom strategy {strategy_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/strategies/custom/{strategy_id}/validate", response_model=ValidationResponse)
+async def validate_custom_strategy(strategy_id: str, request: ValidationRequest):
+    """Validate a custom strategy."""
+    try:
+        # Check if strategy exists
+        strategy_data = get_custom_strategy_db(strategy_id)
+        if not strategy_data:
+            raise HTTPException(status_code=404, detail="Custom strategy not found")
+        
+        # Basic validation - check if strategy has required fields
+        strategy_json = json.loads(strategy_data['strategy_json'])
+        strategy = StrategySchemaV1(**strategy_json)
+        
+        notes = []
+        
+        # Validate basics
+        if not strategy.basics.name or not strategy.basics.name.strip():
+            notes.append("Strategy name is required")
+        
+        # Validate entry rules
+        if not strategy.entry.groups or len(strategy.entry.groups) == 0:
+            notes.append("At least one entry group is required")
+        else:
+            for i, group in enumerate(strategy.entry.groups):
+                if not group.conditions or len(group.conditions) == 0:
+                    notes.append(f"Entry group {i+1} must have at least one condition")
+        
+        # Validate indicators
+        if not strategy.indicators or len(strategy.indicators) == 0:
+            notes.append("At least one indicator is required")
+        else:
+            seen_ids = set()
+            for indicator in strategy.indicators:
+                if not indicator.id or not indicator.id.strip():
+                    notes.append(f"Indicator {indicator.type} must have an ID")
+                elif indicator.id in seen_ids:
+                    notes.append(f"Duplicate indicator ID: {indicator.id}")
+                else:
+                    seen_ids.add(indicator.id)
+        
+        return ValidationResponse(
+            ok=len(notes) == 0,
+            notes=notes if notes else ["Validation passed"]
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error validating custom strategy {strategy_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

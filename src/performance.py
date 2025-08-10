@@ -53,9 +53,16 @@ class PerformanceAnalyzer:
         days = (equity_df.index[-1] - equity_df.index[0]).days
         if days > 0:
             years = days / 365.25
-            annualized_return = (1 + total_return) ** (1 / years) - 1
+            # Ensure the base is non-negative before taking the root
+            base = 1 + total_return
+            if base < 0:
+                # If base is negative, it means total loss is > 100%, return is undefined
+                # Or we can take the real part of the complex number
+                annualized_return = np.sign(base) * (abs(base) ** (1 / years)) - 1
+            else:
+                annualized_return = base ** (1 / years) - 1
         else:
-            annualized_return = 0
+            annualized_return = 0.0
         
         # Annualized volatility
         annualized_volatility = equity_df['return'].std() * np.sqrt(252)

@@ -38,16 +38,22 @@ const StepSizingRisk: React.FC<Props> = ({ value, onChange }) => {
     commit(next);
   }
 
-  function updateParam(key: string, val: number | string) {
-    const params = { ...(sizing.params || {}) };
-    params[key] = val;
-    commit({ ...sizing, params });
+  function updateParam(key: string, val: string) {
+    const nextParams = { ...(sizing.params || {}) };
+    const num = Number(val);
+    nextParams[key] = isNaN(num) ? val : num;
+    const nextSizing = { ...sizing, params: nextParams };
+    setSizing(nextSizing);
+    onChange(nextSizing);
   }
 
-  function updateRisk(key: 'maxPositions' | 'stopLossPct' | 'takeProfitPct' | 'trailingStopPct', val: number) {
-    const risk = { ...(sizing.risk || {}) };
-    (risk as any)[key] = val;
-    commit({ ...sizing, risk });
+  function updateRisk(key: 'maxPositions' | 'stopLossPct' | 'takeProfitPct' | 'trailingStopPct', val: string) {
+    const nextRisk = { ...(sizing.risk || {}) };
+    const num = Number(val);
+    (nextRisk as any)[key] = isNaN(num) ? val : num;
+    const nextSizing = { ...sizing, risk: nextRisk };
+    setSizing(nextSizing);
+    onChange(nextSizing);
   }
 
   const params = sizing.params || {};
@@ -71,7 +77,7 @@ const StepSizingRisk: React.FC<Props> = ({ value, onChange }) => {
               label="Quantity"
               type="number"
               value={String((params as any).quantity ?? 1)}
-              onChange={(e) => updateParam('quantity', Number(e.target.value))}
+              onChange={(e) => updateParam('quantity', e.target.value)}
               placeholder="1"
             />
           )}
@@ -80,7 +86,7 @@ const StepSizingRisk: React.FC<Props> = ({ value, onChange }) => {
               label="% of Equity"
               type="number"
               value={String((params as any).percent ?? 1)}
-              onChange={(e) => updateParam('percent', Number(e.target.value))}
+              onChange={(e) => updateParam('percent', e.target.value)}
               placeholder="1"
             />
           )}
@@ -90,13 +96,13 @@ const StepSizingRisk: React.FC<Props> = ({ value, onChange }) => {
                 label="ATR Period"
                 type="number"
                 value={String((params as any).atrPeriod ?? 14)}
-                onChange={(e) => updateParam('atrPeriod', Number(e.target.value))}
+                onChange={(e) => updateParam('atrPeriod', e.target.value)}
               />
               <Input
                 label="Risk %"
                 type="number"
                 value={String((params as any).riskPct ?? 1)}
-                onChange={(e) => updateParam('riskPct', Number(e.target.value))}
+                onChange={(e) => updateParam('riskPct', e.target.value)}
               />
             </>
           )}
@@ -109,28 +115,28 @@ const StepSizingRisk: React.FC<Props> = ({ value, onChange }) => {
               label="Max Positions"
               type="number"
               value={String(value.risk?.maxPositions ?? 5)}
-              onChange={(e) => updateRisk('maxPositions', Number(e.target.value))}
+              onChange={(e) => updateRisk('maxPositions', e.target.value)}
             />
             <Input
               label="Stop Loss % (0-1)"
               type="number"
               step="0.01"
               value={String(value.risk?.stopLossPct ?? '')}
-              onChange={(e) => updateRisk('stopLossPct', Number(e.target.value))}
+              onChange={(e) => updateRisk('stopLossPct', e.target.value)}
             />
             <Input
               label="Take Profit % (0-1)"
               type="number"
               step="0.01"
               value={String(value.risk?.takeProfitPct ?? '')}
-              onChange={(e) => updateRisk('takeProfitPct', Number(e.target.value))}
+              onChange={(e) => updateRisk('takeProfitPct', e.target.value)}
             />
             <Input
               label="Trailing Stop % (0-1)"
               type="number"
               step="0.01"
               value={String(value.risk?.trailingStopPct ?? '')}
-              onChange={(e) => updateRisk('trailingStopPct', Number(e.target.value))}
+              onChange={(e) => updateRisk('trailingStopPct', e.target.value)}
             />
           </div>
         </div>

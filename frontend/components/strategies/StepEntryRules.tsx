@@ -89,7 +89,14 @@ const StepEntryRules: React.FC<Props> = ({ value, onChange }) => {
   function updateCondition(gIdx: number, cIdx: number, patch: Partial<Condition>) {
     const groups = (entry.groups || []).map((g, i) => {
       if (i !== gIdx) return g;
-      const conditions = g.conditions.map((c, j) => (j === cIdx ? { ...c, ...patch } : c));
+      const conditions = g.conditions.map((c, j) => {
+        if (j !== cIdx) return c;
+        // Deep merge to avoid overwriting nested objects
+        const newCond = { ...c, ...patch };
+        if (patch.left) newCond.left = { ...c.left, ...patch.left };
+        if (patch.right) newCond.right = { ...c.right, ...patch.right };
+        return newCond;
+      });
       return { ...g, conditions };
     });
     commit({ ...entry, groups });
@@ -132,7 +139,7 @@ const StepEntryRules: React.FC<Props> = ({ value, onChange }) => {
               onChange={(e) => {
                 const text = e.target.value;
                 const maybeNum = Number(text);
-                onChange({ kind: 'const', value: isNaN(maybeNum) ? text : maybeNum });
+                onChange({ ...value, kind: 'const', value: isNaN(maybeNum) ? text : maybeNum });
               }}
             />
           )}
@@ -140,13 +147,13 @@ const StepEntryRules: React.FC<Props> = ({ value, onChange }) => {
             <Input
               placeholder="indicator id"
               value={(value as any).ref ?? ''}
-              onChange={(e) => onChange({ kind: 'indicator', ref: e.target.value })}
+              onChange={(e) => onChange({ ...value, kind: 'indicator', ref: e.target.value })}
             />
           )}
           {kind === 'price' && (
             <Select
               value={(value as any).field ?? 'close'}
-              onChange={(e) => onChange({ kind: 'price', field: e.target.value as any })}
+              onChange={(e) => onChange({ ...value, kind: 'price', field: e.target.value as any })}
               options={[
                 { value: 'open', label: 'Open' },
                 { value: 'high', label: 'High' },
@@ -160,7 +167,7 @@ const StepEntryRules: React.FC<Props> = ({ value, onChange }) => {
             <Input
               placeholder="expr: e.g., (rsi14 < 30) ? 1 : 0"
               value={(value as any).expr ?? ''}
-              onChange={(e) => onChange({ kind: 'expr', expr: e.target.value })}
+              onChange={(e) => onChange({ ...value, kind: 'expr', expr: e.target.value })}
             />
           )}
         </div>

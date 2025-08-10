@@ -19,7 +19,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 from src.async_engine import AsyncBacktestEngine
 from config import Config
 from strategy_manager import StrategyManager
-from ..database import save_backtest_result_db, get_backtest_result_db, list_backtests_db, delete_backtest_db
+from ..database import save_backtest_result_db, get_backtest_result_db, list_backtests_db, delete_backtest_db, list_custom_strategies_db
+import json
+from backend.models.api_models import StrategySchemaV1
 
 
 class BacktestService:
@@ -50,11 +52,22 @@ class BacktestService:
         
         engine = AsyncBacktestEngine(config=config)
         
+        # Check if the strategy is a custom strategy
+        custom_strategy = None
+        loop = asyncio.get_event_loop()
+        custom_strategies_db = await loop.run_in_executor(None, list_custom_strategies_db)
+        for cs in custom_strategies_db:
+            strategy_json = json.loads(cs['strategy_json'])
+            if strategy_json['basics']['name'] == strategy_name:
+                custom_strategy = strategy_json
+                break
+        
         result = await engine.run_backtest(
             strategy_name,
             symbol,
             start_date,
             end_date,
+            strategy_definition=custom_strategy,
             **(parameters or {})
         )
         
@@ -76,9 +89,10 @@ class BacktestService:
         return await loop.run_in_executor(None, list_backtests_db)
     
     async def list_strategies(self) -> List[Dict]:
-        """List available strategies."""
+        """List available strategies, including custom ones."""
+        # Get built-in strategies
         strategies = self.strategy_manager.list_strategies()
-        return [
+        strategy_list = [
             {
                 'name': name,
                 'description': getattr(strategy_class, '__doc__', ''),
@@ -86,6 +100,26 @@ class BacktestService:
             }
             for name, strategy_class in strategies.items()
         ]
+        
+        # Get custom strategies from the database
+        loop = asyncio.get_event_loop()
+        custom_strategies_db = await loop.run_in_executor(None, list_custom_strategies_db)
+        
+        for custom_strategy_data in custom_strategies_db:
+            try:
+                strategy_json = json.loads(custom_strategy_data['strategy_json'])
+                strategy = StrategySchemaV1(**strategy_json)
+                strategy_list.append({
+                    'id': custom_strategy_data['id'],
+                    'name': strategy.basics.name,
+                    'description': strategy.basics.description,
+                    'parameters': {},  # Custom strategies might not have params in the same way
+                    'is_custom': True
+                })
+            except (json.JSONDecodeError, TypeError, KeyError) as e:
+                print(f"Could not parse custom strategy: {e}")
+
+        return strategy_list
     
     async def delete_backtest(self, backtest_id: str) -> bool:
         """Delete a backtest."""

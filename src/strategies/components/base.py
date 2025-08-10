@@ -15,6 +15,13 @@ class StrategyComponent(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def get_column_name(self) -> str:
+        """
+        Return the name of the column this component adds.
+        """
+        raise NotImplementedError
+
 
 class NoOpComponent(StrategyComponent):
     """

@@ -38,6 +38,17 @@ def init_db():
             )
         """)
         
+        # Create custom_strategies table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS custom_strategies (
+                id TEXT PRIMARY KEY,
+                status TEXT NOT NULL CHECK (status IN ('draft', 'published')),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                strategy_json TEXT NOT NULL
+            )
+        """)
+        
         conn.commit()
         conn.close()
         logger.info("Database initialized successfully.")
@@ -134,4 +145,78 @@ def delete_backtest_db(backtest_id: str) -> bool:
         return deleted_rows > 0
     except Exception as e:
         logger.error(f"Error deleting backtest {backtest_id} from database: {e}")
+        return False
+
+
+# Custom Strategies CRUD operations
+def save_custom_strategy_db(strategy_id: str, status: str, strategy_json: str):
+    """Save a custom strategy to the database."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT OR REPLACE INTO custom_strategies (id, status, strategy_json, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        """, (strategy_id, status, strategy_json))
+        
+        conn.commit()
+        conn.close()
+        logger.info(f"Custom strategy {strategy_id} saved to database.")
+    except Exception as e:
+        logger.error(f"Error saving custom strategy {strategy_id} to database: {e}")
+        raise
+
+
+def get_custom_strategy_db(strategy_id: str) -> Optional[Dict[str, Any]]:
+    """Get a custom strategy from the database."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM custom_strategies WHERE id = ?", (strategy_id,))
+        row = cursor.fetchone()
+        
+        conn.close()
+        
+        if row:
+            return dict(row)
+        return None
+    except Exception as e:
+        logger.error(f"Error getting custom strategy {strategy_id} from database: {e}")
+        return None
+
+
+def list_custom_strategies_db() -> List[Dict[str, Any]]:
+    """List all custom strategies from the database."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT id, status, created_at, updated_at, strategy_json FROM custom_strategies ORDER BY created_at DESC")
+        rows = cursor.fetchall()
+        
+        conn.close()
+        
+        return [dict(row) for row in rows]
+    except Exception as e:
+        logger.error(f"Error listing custom strategies from database: {e}")
+        return []
+
+
+def delete_custom_strategy_db(strategy_id: str) -> bool:
+    """Delete a custom strategy from the database."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM custom_strategies WHERE id = ?", (strategy_id,))
+        
+        conn.commit()
+        deleted_rows = cursor.rowcount
+        conn.close()
+        
+        return deleted_rows > 0
+    except Exception as e:
+        logger.error(f"Error deleting custom strategy {strategy_id} from database: {e}")
         return False

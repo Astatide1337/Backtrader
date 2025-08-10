@@ -279,6 +279,10 @@ class OrderManager:
     def get_open_positions(self) -> List[Position]:
         return [p for p in self.positions.values() if p.is_open()]
 
+    def get_position(self, symbol: str) -> Optional[Position]:
+        """Get an open position by symbol."""
+        return next((p for p in self.get_open_positions() if p.symbol == symbol), None)
+
     def get_closed_positions(self) -> List[Position]:
         return self.closed_positions
 
