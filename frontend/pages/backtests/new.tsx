@@ -38,7 +38,7 @@ const NewBacktestPage: React.FC = () => {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetchJson(ENDPOINTS.strategies);
+        const res = await fetchJson<{ strategies: Strategy[] }>(ENDPOINTS.strategies);
         setStrategies(res.strategies ?? []);
         setErrorStrategies(null);
       } catch (e: any) {
