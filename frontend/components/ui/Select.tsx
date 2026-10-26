@@ -10,7 +10,8 @@ export type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
 };
 
 const Select: React.FC<SelectProps> = ({ className, label, error, id, options, children, ...props }) => {
-  const selectId = id || props.name || undefined;
+  const generatedId = React.useId();
+  const selectId = id || props.name || generatedId;
   return (
     <div className="w-full">
       {label && (

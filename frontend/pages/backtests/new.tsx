@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useBacktests } from 'hooks/useBacktests';
-import { fetchJson } from 'lib/http';
+import { fetchJson, getErrorMessage } from 'lib/http';
 import { ENDPOINTS } from 'lib/config';
 import Card from 'components/ui/Card';
 import { CardHeader, CardContent } from 'components/ui/Card';
@@ -41,8 +41,8 @@ const NewBacktestPage: React.FC = () => {
         const res = await fetchJson<{ strategies: Strategy[] }>(ENDPOINTS.strategies);
         setStrategies(res.strategies ?? []);
         setErrorStrategies(null);
-      } catch (e: any) {
-        setErrorStrategies(e?.message || 'Failed to load strategies');
+      } catch (e) {
+        setErrorStrategies(getErrorMessage(e, 'Failed to load strategies'));
       } finally {
         setLoadingStrategies(false);
       }
@@ -65,16 +65,9 @@ const NewBacktestPage: React.FC = () => {
         initial_capital: Number(capital),
       });
       window.location.href = '/backtests';
-    } catch (e: any) {
+    } catch (e) {
       // Surface backend validation errors (422) to the user
-      const detail = e?.detail;
-      const friendly =
-        Array.isArray(detail)
-          ? detail.map((d: any) => (d?.msg ? `${d?.loc?.join('.') ?? 'field'}: ${d.msg}` : JSON.stringify(d))).join('; ')
-          : typeof detail === 'string'
-            ? detail
-            : e?.message || 'Failed to create backtest';
-      setSubmitError(friendly);
+      setSubmitError(getErrorMessage(e, 'Failed to create backtest'));
     } finally {
       setSubmitting(false);
     }

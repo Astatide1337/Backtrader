@@ -1,4 +1,6 @@
+import { getErrorMessage } from 'lib/http';
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useBacktests } from 'hooks/useBacktests';
 import Button from 'components/ui/Button';
 import Card from 'components/ui/Card';
@@ -12,7 +14,7 @@ import { THead, TBody, TR, TH, TD } from 'components/ui/Table';
 const PAGE_SIZE = 10;
 
 const BacktestsPage: React.FC = () => {
-  const { data, isLoading, error, deleteBacktest, mutate } = useBacktests();
+  const { data, isLoading, error, deleteBacktest } = useBacktests();
 
   async function onDelete(id: string) {
     if (!confirm('Delete this backtest? This action cannot be undone.')) return;
@@ -20,8 +22,8 @@ const BacktestsPage: React.FC = () => {
       // optimistic UI: remove from current page immediately
       // Note: keeping simple; rely on mutate after server delete to refresh canonical data
       await deleteBacktest(id);
-    } catch (e: any) {
-      alert(e?.message || 'Failed to delete backtest');
+    } catch (e) {
+      alert(getErrorMessage(e, 'Failed to delete backtest'));
     }
   }
   const [page, setPage] = useState(1);
@@ -40,7 +42,7 @@ const BacktestsPage: React.FC = () => {
         <CardHeader>
           <div className="flex w-full items-center justify-between">
             <div className="text-sm font-semibold text-gray-900">Backtests</div>
-            <a href="/backtests/new" className="btn btn-primary px-3 py-1 text-sm">New Backtest</a>
+            <Link href="/backtests/new" className="btn btn-primary px-3 py-1 text-sm">New Backtest</Link>
           </div>
         </CardHeader>
         <CardContent>

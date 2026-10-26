@@ -1,3 +1,4 @@
+import { getErrorMessage } from 'lib/http';
 import React from 'react';
 import Card, { CardContent, CardHeader } from 'components/ui/Card';
 import Button from 'components/ui/Button';
@@ -25,8 +26,8 @@ const StepReview: React.FC<Props> = ({ schema, setBusy, onSaved, localErrors }) 
       const rec = await createOrUpdateCustomStrategy(schema, status);
       strategyIdRef.current = rec.id;
       onSaved?.(rec);
-    } catch (e: any) {
-      setErrMsg(e?.message || 'Failed to save.');
+    } catch (e) {
+      setErrMsg(getErrorMessage(e, 'Failed to save.'));
     } finally {
       setBusy?.(false);
       setSaving(null);
@@ -46,8 +47,8 @@ const StepReview: React.FC<Props> = ({ schema, setBusy, onSaved, localErrors }) 
       }
       const res = await validateCustomStrategy(id!, { bars: 100 });
       setResult(res);
-    } catch (e: any) {
-      setErrMsg(e?.message || 'Failed to validate.');
+    } catch (e) {
+      setErrMsg(getErrorMessage(e, 'Failed to validate.'));
     } finally {
       setBusy?.(false);
     }

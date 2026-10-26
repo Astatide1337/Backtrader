@@ -84,6 +84,7 @@ export interface PortfolioSnapshot {
 // Strategies
 export interface Strategy {
   id: string;
+  is_custom?: boolean;
   name: string;
   description?: string | null;
 }

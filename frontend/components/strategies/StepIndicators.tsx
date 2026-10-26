@@ -4,7 +4,7 @@ import Input from 'components/ui/Input';
 import Select from 'components/ui/Select';
 import Button from 'components/ui/Button';
 import { validateIndicatorsUniqueIds } from 'types/strategySchema';
-import type { IndicatorSpec, StrategySchemaV1, Timeframe } from 'types/strategySchema';
+import type { IndicatorSpec, IndicatorSource, StrategySchemaV1, Timeframe } from 'types/strategySchema';
 
 type Props = {
   value: StrategySchemaV1['indicators'];
@@ -119,7 +119,7 @@ const StepIndicators: React.FC<Props> = ({ value, onChange }) => {
                 <Select
                   label="Source"
                   value={ind.source?.type ?? 'price'}
-                  onChange={(e) => update(idx, { source: { ...(ind.source || {}), type: e.target.value as any } })}
+                  onChange={(e) => update(idx, { source: { ...(ind.source || {}), type: e.target.value as IndicatorSource } })}
                   options={[
                     { value: 'price', label: 'Price' },
                     { value: 'ohlcv', label: 'OHLCV' },

@@ -1,8 +1,7 @@
+import { getErrorMessage } from 'lib/http';
 import React from 'react';
 import { useRouter } from 'next/router';
-import { useBacktestDetail, useBacktests, formatLocalDateTime } from 'hooks/useBacktests';
-import Card from 'components/ui/Card';
-import { CardHeader, CardContent } from 'components/ui/Card';
+import { useBacktestDetail, useBacktests } from 'hooks/useBacktests';
 import Skeleton from 'components/ui/Skeleton';
 import ErrorState from 'components/ui/ErrorState';
 import Button from 'components/ui/Button';
@@ -38,8 +37,8 @@ const BacktestDetailPage: React.FC = () => {
                   try {
                     await deleteBacktest(id);
                     window.location.href = '/backtests';
-                  } catch (e: any) {
-                    alert(e?.message || 'Failed to delete backtest');
+                  } catch (e) {
+                    alert(getErrorMessage(e, 'Failed to delete backtest'));
                   }
                 }}
               >

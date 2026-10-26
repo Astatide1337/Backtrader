@@ -22,6 +22,24 @@ export class HttpError extends Error {
   }
 }
 
+export function getErrorMessage(error: unknown, fallback: string): string {
+  const payload = error instanceof HttpError ? error.payload : error;
+  if (typeof payload === 'object' && payload !== null && 'detail' in payload) {
+    const detail = payload.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail) && detail.length > 0) {
+      return detail.map((item: unknown) => {
+        if (typeof item === 'object' && item !== null && 'msg' in item && typeof item.msg === 'string') {
+          const location = 'loc' in item && Array.isArray(item.loc) ? item.loc.join('.') : 'field';
+          return `${location}: ${item.msg}`;
+        }
+        return JSON.stringify(item) ?? fallback;
+      }).join('; ');
+    }
+  }
+  return error instanceof Error ? error.message : fallback;
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function fetchJson<T = unknown>(
@@ -65,8 +83,8 @@ export async function fetchJson<T = unknown>(
       }
 
       return (data as T) ?? (undefined as unknown as T);
-    } catch (err: any) {
-      if (err?.name === 'AbortError') throw err;
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') throw err;
       if (attempt < retries) {
         attempt += 1;
         await sleep(retryDelayMs * attempt);
