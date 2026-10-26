@@ -1,6 +1,5 @@
 import React from 'react';
 import Link from 'next/link';
-import useSWR from 'swr';
 import useStrategies from 'hooks/useStrategies';
 import Card from 'components/ui/Card';
 import { CardHeader, CardContent } from 'components/ui/Card';
@@ -32,7 +31,7 @@ const StrategiesPage: React.FC = () => {
     }
   }
 
-  function useStrategy(name: string) {
+  function selectStrategy(name: string) {
     // simplest approach: navigate to /backtests/new with preselected strategy via query string
     const params = new URLSearchParams({ strategy: name }).toString();
     window.location.href = `/backtests/new?${params}`;
@@ -65,14 +64,14 @@ const StrategiesPage: React.FC = () => {
               </THead>
               <TBody>
                 {data.map((s) => (
-                  <TR key={(s as any).id ?? s.name}>
+                  <TR key={s.id ?? s.name}>
                     <TD className="font-medium">{s.name}</TD>
                     <TD className="text-gray-600">{s.description ?? '—'}</TD>
                     <TD className="text-right">
                       <div className="flex items-center justify-end space-x-2">
-                        {(s as any).is_custom ? (
+                        {s.is_custom ? (
                           <>
-                            <Link href={`/strategies/custom/${(s as any).id}`}>
+                            <Link href={`/strategies/custom/${s.id}`}>
                               <Button variant="secondary" className="px-3 py-1 text-xs">
                                 View
                               </Button>
@@ -80,7 +79,7 @@ const StrategiesPage: React.FC = () => {
                             <Button
                               variant="secondary"
                               className="px-3 py-1 text-xs"
-                              onClick={() => handleDelete((s as any).id)}
+                              onClick={() => handleDelete(s.id)}
                             >
                               Delete
                             </Button>
@@ -89,7 +88,7 @@ const StrategiesPage: React.FC = () => {
                           <Button
                             variant="secondary"
                             className="px-3 py-1 text-xs"
-                            onClick={() => useStrategy(s.name)}
+                            onClick={() => selectStrategy(s.name)}
                           >
                             Use Strategy
                           </Button>

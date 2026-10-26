@@ -7,7 +7,8 @@ export type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
 };
 
 const Input: React.FC<InputProps> = ({ className, label, error, id, ...props }) => {
-  const inputId = id || props.name || undefined;
+  const generatedId = React.useId();
+  const inputId = id || props.name || generatedId;
   return (
     <div className="w-full">
       {label && (

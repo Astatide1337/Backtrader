@@ -105,7 +105,7 @@ const NewCustomStrategyPage: React.FC = () => {
           />
         );
       case 'review':
-        return <StepReview schema={schema} setBusy={setBusy} onSaved={onSaved as any} localErrors={localErrors} />;
+        return <StepReview schema={schema} setBusy={setBusy} onSaved={onSaved} localErrors={localErrors} />;
       default:
         return null;
     }
@@ -135,7 +135,7 @@ const NewCustomStrategyPage: React.FC = () => {
       </Card>
 
       <WizardLayout
-        steps={steps as any}
+        steps={[...steps]}
         activeIndex={active}
         onSelectStep={(i) => setActive(i)}
       >

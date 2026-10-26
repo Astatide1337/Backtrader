@@ -1,7 +1,7 @@
 import React from 'react';
 import Card, { CardContent, CardHeader } from 'components/ui/Card';
 import Select from 'components/ui/Select';
-import Input from 'components/ui/Input';
+import OperandEditor from './OperandEditor';
 import Button from 'components/ui/Button';
 import type {
   StrategySchemaV1,
@@ -9,7 +9,6 @@ import type {
   ConditionGroup,
   Condition,
   Comparator,
-  Operand,
   RuleSide,
 } from 'types/strategySchema';
 import { validateConditions } from 'types/strategySchema';
@@ -96,89 +95,13 @@ const StepExitRules: React.FC<Props> = ({ value, onChange }) => {
       if (i !== gIdx) return g;
       const conditions = g.conditions.map((c, j) => {
         if (j !== cIdx) return c;
-        // Deep merge to avoid overwriting nested objects
-        const newCond = { ...c, ...patch };
-        if (patch.left) newCond.left = { ...c.left, ...patch.left };
-        if (patch.right) newCond.right = { ...c.right, ...patch.right };
-        return newCond;
+        return { ...c, ...patch };
       });
       return { ...g, conditions };
     });
     commit({ ...exit, groups });
   }
 
-  function OperandEditor({
-    value,
-    onChange,
-    label,
-  }: {
-    value: Operand;
-    onChange: (o: Operand) => void;
-    label: string;
-  }) {
-    const kind = (value as any)?.kind ?? 'const';
-    return (
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-700">{label}</label>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-          <Select
-            value={kind}
-            onChange={(e) => {
-              const k = e.target.value as Operand['kind'];
-              if (k === 'const') onChange({ kind: 'const', value: 0 });
-              else if (k === 'indicator') onChange({ kind: 'indicator', ref: '' });
-              else if (k === 'price') onChange({ kind: 'price', field: 'close' });
-              else onChange({ kind: 'expr', expr: '' });
-            }}
-            options={[
-              { value: 'const', label: 'Constant' },
-              { value: 'indicator', label: 'Indicator' },
-              { value: 'price', label: 'Price' },
-              { value: 'expr', label: 'Expression' },
-            ]}
-          />
-          {kind === 'const' && (
-            <Input
-              placeholder="value"
-              value={String((value as any).value ?? '')}
-              onChange={(e) => {
-                const text = e.target.value;
-                const maybeNum = Number(text);
-                onChange({ ...value, kind: 'const', value: isNaN(maybeNum) ? text : maybeNum });
-              }}
-            />
-          )}
-          {kind === 'indicator' && (
-            <Input
-              placeholder="indicator id"
-              value={(value as any).ref ?? ''}
-              onChange={(e) => onChange({ ...value, kind: 'indicator', ref: e.target.value })}
-            />
-          )}
-          {kind === 'price' && (
-            <Select
-              value={(value as any).field ?? 'close'}
-              onChange={(e) => onChange({ ...value, kind: 'price', field: e.target.value as any })}
-              options={[
-                { value: 'open', label: 'Open' },
-                { value: 'high', label: 'High' },
-                { value: 'low', label: 'Low' },
-                { value: 'close', label: 'Close' },
-                { value: 'volume', label: 'Volume' },
-              ]}
-            />
-          )}
-          {kind === 'expr' && (
-            <Input
-              placeholder="expr"
-              value={(value as any).expr ?? ''}
-              onChange={(e) => onChange({ ...value, kind: 'expr', expr: e.target.value })}
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <Card>
@@ -206,7 +129,7 @@ const StepExitRules: React.FC<Props> = ({ value, onChange }) => {
               <div className="mb-2 flex items-center justify-between">
                 <Select
                   value={g.op}
-                  onChange={(e) => updateGroupOp(gIdx, e.target.value as any)}
+                  onChange={(e) => updateGroupOp(gIdx, e.target.value as ConditionGroup['op'])}
                   options={[
                     { value: 'AND', label: 'AND group' },
                     { value: 'OR', label: 'OR group' },

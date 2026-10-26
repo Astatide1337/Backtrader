@@ -29,11 +29,11 @@ const StepSizingRisk: React.FC<Props> = ({ value, onChange }) => {
     const next: SizingConfig = { ...sizing, mode };
     // set default params per mode
     if (mode === 'fixed') {
-      next.params = { quantity: Number((sizing.params as any)?.quantity ?? 1) };
+      next.params = { quantity: Number(sizing.params?.quantity ?? 1) };
     } else if (mode === 'percent_of_equity') {
-      next.params = { percent: Number((sizing.params as any)?.percent ?? 1) };
+      next.params = { percent: Number(sizing.params?.percent ?? 1) };
     } else if (mode === 'volatility') {
-      next.params = { atrPeriod: Number((sizing.params as any)?.atrPeriod ?? 14), riskPct: Number((sizing.params as any)?.riskPct ?? 1) };
+      next.params = { atrPeriod: Number(sizing.params?.atrPeriod ?? 14), riskPct: Number(sizing.params?.riskPct ?? 1) };
     }
     commit(next);
   }
@@ -50,7 +50,9 @@ const StepSizingRisk: React.FC<Props> = ({ value, onChange }) => {
   function updateRisk(key: 'maxPositions' | 'stopLossPct' | 'takeProfitPct' | 'trailingStopPct', val: string) {
     const nextRisk = { ...(sizing.risk || {}) };
     const num = Number(val);
-    (nextRisk as any)[key] = isNaN(num) ? val : num;
+    if (val.trim() === '') delete nextRisk[key];
+    else if (Number.isFinite(num)) nextRisk[key] = num;
+    else return;
     const nextSizing = { ...sizing, risk: nextRisk };
     setSizing(nextSizing);
     onChange(nextSizing);
@@ -76,7 +78,7 @@ const StepSizingRisk: React.FC<Props> = ({ value, onChange }) => {
             <Input
               label="Quantity"
               type="number"
-              value={String((params as any).quantity ?? 1)}
+              value={String(params.quantity ?? 1)}
               onChange={(e) => updateParam('quantity', e.target.value)}
               placeholder="1"
             />
@@ -85,7 +87,7 @@ const StepSizingRisk: React.FC<Props> = ({ value, onChange }) => {
             <Input
               label="% of Equity"
               type="number"
-              value={String((params as any).percent ?? 1)}
+              value={String(params.percent ?? 1)}
               onChange={(e) => updateParam('percent', e.target.value)}
               placeholder="1"
             />
@@ -95,13 +97,13 @@ const StepSizingRisk: React.FC<Props> = ({ value, onChange }) => {
               <Input
                 label="ATR Period"
                 type="number"
-                value={String((params as any).atrPeriod ?? 14)}
+                value={String(params.atrPeriod ?? 14)}
                 onChange={(e) => updateParam('atrPeriod', e.target.value)}
               />
               <Input
                 label="Risk %"
                 type="number"
-                value={String((params as any).riskPct ?? 1)}
+                value={String(params.riskPct ?? 1)}
                 onChange={(e) => updateParam('riskPct', e.target.value)}
               />
             </>

@@ -3,12 +3,13 @@ import { Card, CardContent, CardHeader } from 'components/ui/Card';
 import { Table, THead, TBody, TR, TH, TD } from 'components/ui/Table';
 import Input from 'components/ui/Input';
 import Button from 'components/ui/Button';
+import type { Order } from 'types/api';
 
 type SortKey = 'id' | 'symbol' | 'side' | 'qty' | 'price' | 'timestamp';
 type SortDirection = 'asc' | 'desc';
 
 interface OrdersLogProps {
-  orders: any[];
+  orders: Order[];
 }
 
 const PAGE_SIZE = 10;
@@ -30,7 +31,7 @@ const OrdersLog: React.FC<OrdersLogProps> = ({ orders }) => {
   }, [orders, searchTerm]);
 
   const sortedOrders = useMemo(() => {
-    let sortableOrders = [...filteredOrders];
+    const sortableOrders = [...filteredOrders];
     if (sortConfig !== null) {
       sortableOrders.sort((a, b) => {
         const aValue = a[sortConfig.key];
@@ -78,7 +79,7 @@ const OrdersLog: React.FC<OrdersLogProps> = ({ orders }) => {
       order.id,
       order.symbol,
       order.side,
-      order.quantity,
+      order.qty,
       order.price,
       order.timestamp,
     ]);

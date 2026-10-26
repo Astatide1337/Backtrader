@@ -9,7 +9,7 @@ export type UseOrdersResult = {
   mutate: () => void;
 };
 
-export default function useOrders(backtestId: string): UseOrdersResult {
+export default function useOrders(backtestId: string = ''): UseOrdersResult {
   const { data, error, mutate, isLoading } = useSWR<Order[]>(
     backtestId ? ENDPOINTS.backtestOrders(backtestId) : null
   );
