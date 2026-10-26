@@ -29,12 +29,24 @@
     "eslint": "8.57.0",
     "eslint-config-next": "^15.5.28",
     "eslint-config-prettier": "10.1.8",
-    "postcss": "8.4.39",
+    "postcss": "8.5.31",
     "prettier": "3.3.3",
     "tailwindcss": "3.4.10",
     "typescript": "5.5.4"
   },
   "overrides": {
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "next": {
+      "postcss": "$postcss"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "9.0.9"
+    },
+    "tailwindcss": {
+      "postcss-selector-parser": "7.1.6"
+    },
+    "postcss-nested": {
+      "postcss-selector-parser": "7.1.6"
+    }
   }
 }
